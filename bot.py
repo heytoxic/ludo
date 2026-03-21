@@ -11,7 +11,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 # ── CONFIG ──────────────────────────────────────
-BOT_TOKEN  = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN  = os.getenv("BOT_TOKEN", "8507021627:AAGv_DE_0JVwakzjW_J7g-hArW3grpEc3fc")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://YOUR_WEBAPP_URL_HERE")
 # e.g. https://ludo-elite.vercel.app  or  https://youruser.github.io/ludo
 # ────────────────────────────────────────────────
