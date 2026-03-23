@@ -239,15 +239,15 @@ html,body { width:100%; height:100%; background:var(--bg); color:var(--text);
 <div class="screen" id="sLobby">
   <div class="logo-container">
     <div class="logo">LUDO</div>
-    <div class="logo-sub">Elite Multiplayer</div>
+    <div class="logo-sub">Multiplayer</div>
   </div>
 
   <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
     <div class="section-label">Select Mode</div>
     <div class="pill-row">
-      <button class="pill active" id="btnCreate" onclick="selectMode('create')">🎮 Create Room</button>
-      <button class="pill" id="btnJoin" onclick="selectMode('join')">🔗 Join Room</button>
-      <button class="pill" id="btnSpectate" onclick="selectMode('spectate')">👁 Spectate</button>
+      <button class="pill active" id="btnCreate" onclick="selectMode('create')">Create Room</button>
+      <button class="pill" id="btnJoin" onclick="selectMode('join')">Join Room</button>
+      <button class="pill" id="btnSpectate" onclick="selectMode('spectate')">Spectate</button>
     </div>
   </div>
 
@@ -265,7 +265,7 @@ html,body { width:100%; height:100%; background:var(--bg); color:var(--text);
     <input class="join-input" id="joinCode" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
   </div>
 
-  <button class="big-btn" id="mainBtn" onclick="handleMainBtn()">▶ START</button>
+  <button class="big-btn" id="mainBtn" onclick="handleMainBtn()">START</button>
 
   <div style="font-size:12px; font-weight:700; color:var(--text-muted);" id="connStatus">Connecting...</div>
 </div>
@@ -284,7 +284,7 @@ html,body { width:100%; height:100%; background:var(--bg); color:var(--text);
     <div class="waiting-slots" id="waitSlots"></div>
   </div>
   <div style="color:var(--text-muted);font-size:14px;font-weight:700" id="waitHint">Waiting for players...</div>
-  <button class="big-btn" id="btnStartGame" style="display:none" onclick="hostStartGame()">▶ START GAME</button>
+  <button class="big-btn" id="btnStartGame" style="display:none" onclick="hostStartGame()">START GAME</button>
 </div>
 
 <div class="screen hidden" id="sGame">
@@ -322,7 +322,7 @@ html,body { width:100%; height:100%; background:var(--bg); color:var(--text);
 // ══════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════
-const SERVER_URL = 'wss://ludo-2u79.onrender.com';
+const SERVER_URL = 'wss://toxicdev.onrender.com';
 
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const COLORS     = ['red','blue','green','yellow'];
@@ -400,7 +400,7 @@ function selectMode(m){
   document.getElementById('createOpts').style.display = m==='create'?'flex':'none';
   document.getElementById('joinOpts').style.display   = m==='join'||m==='spectate'?'flex':'none';
   document.getElementById('mainBtn').textContent =
-    m==='create'?'▶ CREATE ROOM': m==='join'?'▶ JOIN ROOM':'👁 SPECTATE';
+    m==='create'?' CREATE ROOM': m==='join'?'JOIN ROOM':'SPECTATE';
 }
 
 function setPlayers(n){
