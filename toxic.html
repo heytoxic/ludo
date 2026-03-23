@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Toxic Ludo</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Nunito:wght@400;700;900&display=swap');
+
+:root {
+  --red: #FF3B30;
+  --blue: #007AFF;
+  --green: #34C759;
+  --yellow: #FFCC00;
+  --bg: #F2F2F7;
+  --surface: #FFFFFF;
+  --surface2: #E5E5EA;
+  --text: #1C1C1E;
+  --text-muted: #8E8E93;
+  --accent: #5856D6;
+  /* Adjusted board size to fit perfectly between header and footer on mobile */
+  --bs: calc(min(92vw, 50vh, 420px)); 
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; background:var(--bg); color:var(--text);
+  font-family:'Nunito', sans-serif; overflow:hidden; user-select:none; }
+
+/* ─── GLOBAL FOOTER ─── */
+.toxic-footer {
+  position: fixed; bottom: 8px; width: 100%; text-align: center;
+  font-family: 'Rajdhani', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase;
+  z-index: 10; pointer-events: none;
+}
+
+/* ─── SCREENS ─── */
+.screen { position:fixed; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; transition:opacity .35s, transform .35s; 
+  background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); } /* Bright Colorful BG */
+.screen.hidden { opacity:0; pointer-events:none; transform:scale(.96); }
+
+/* ─── LOBBY ─── */
+#sLobby { gap:22px; padding:20px; }
+
+.logo-container {
+  background: var(--surface); padding: 20px 40px; border-radius: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1), inset 0 -4px 0 rgba(0,0,0,0.05);
+  text-align: center; border: 2px solid rgba(255,255,255,0.5);
+}
+.logo { font-size:clamp(36px, 10vw, 60px); font-weight:900;
+  letter-spacing:.05em;
+  background:linear-gradient(135deg, #FF3B30, #FFCC00);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 4px 6px rgba(255,59,48,.3)); }
+.logo-sub { font-size:12px; letter-spacing:.2em; color: #5856D6;
+  text-transform:uppercase; font-weight: 800; margin-top:-5px; }
+
+.section-label { font-size:13px; font-weight: 800; color: #333;
+  text-transform:uppercase; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+
+.pill-row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+
+.pill { padding:10px 18px; border-radius:50px; border: none;
+  background: var(--surface); color: var(--text-muted);
+  font-family:'Nunito', sans-serif; font-size:14px; font-weight:800;
+  cursor:pointer; transition:all .2s; text-transform:uppercase;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+.pill.active { color: white; background: var(--accent);
+  box-shadow: 0 6px 16px rgba(88,86,214,.4); transform: translateY(-2px); }
+.pill:active { transform:scale(.94); }
+
+.num-row { display:flex; gap:10px; }
+.nbox { width:55px; height:55px; border-radius:16px;
+  background: var(--surface); color: var(--text-muted); 
+  font-size:22px; font-weight:800; cursor:pointer; transition:all .2s;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+.nbox.active { background: var(--accent); color: white;
+  transform:scale(1.1); box-shadow: 0 6px 16px rgba(88,86,214,.4); }
+
+.big-btn { padding:16px 45px; border-radius:50px; border:none;
+  background:linear-gradient(135deg, #34C759, #28a745); color:#fff;
+  font-family:'Nunito', sans-serif; font-size:18px; font-weight:900;
+  letter-spacing:.05em; cursor:pointer; text-transform:uppercase;
+  box-shadow:0 8px 24px rgba(52,199,89,.4);
+  transition:all .2s; border-bottom: 4px solid #1e7e34; }
+.big-btn:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(52,199,89,.5); }
+.big-btn:active { transform:scale(.96); border-bottom-width: 0px; margin-top: 4px; }
+.big-btn:disabled { opacity:.5; pointer-events:none; }
+
+/* room code display */
+.room-box { background:var(--surface); border-radius:20px; padding:16px 28px; 
+  text-align:center; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.room-code { font-size:36px; font-weight:900; letter-spacing:.15em; color:var(--accent); }
+.room-hint { font-size:12px; font-weight: 700; color:var(--text-muted); text-transform:uppercase; }
+
+.join-input { background:var(--surface); border:2px solid transparent;
+  border-radius:16px; padding:14px 20px; font-family:'Nunito', sans-serif;
+  font-size:22px; font-weight:800; letter-spacing:.2em; color:var(--text);
+  text-align:center; width:220px; outline:none; text-transform:uppercase;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05) inset; }
+.join-input:focus { border-color:var(--accent); }
+.join-input::placeholder { color:var(--surface2); font-size:16px; }
+
+/* waiting room */
+.waiting-slots { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-width:300px; }
+.slot { padding:10px 16px; border-radius:14px; background:var(--surface); 
+  font-size:14px; font-weight:800; color: #333; display:flex; align-items:center; gap:8px; 
+  min-width:120px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.slot-dot { width:10px; height:10px; border-radius:50%; background:var(--surface2); }
+.slot.filled .slot-dot { box-shadow: 0 0 8px currentColor; }
+
+/* ─── GAME SCREEN (OP GRAPHICS) ─── */
+#sGame { padding:0; background: linear-gradient(to bottom, #f0f4f8, #d9e2ec); }
+
+.topbar { position:fixed; top:0; left:0; right:0; height:56px;
+  display:flex; align-items:center; justify-content:space-between; padding:0 16px;
+  background:rgba(255,255,255,0.85); backdrop-filter:blur(10px);
+  border-bottom:2px solid rgba(0,0,0,0.05); z-index:60; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+.tb-left { font-size:20px; font-weight:900; color: var(--accent); }
+.tb-mid { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:800; color:#333; }
+.turn-dot { width:12px; height:12px; border-radius:50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+.badge { padding:4px 12px; border-radius:20px; font-size:11px; font-weight:800; text-transform:uppercase; }
+.badge-code { background: #E5E5EA; color: #1C1C1E; cursor:pointer; }
+.badge-you { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+/* Board */
+.board-wrap { margin-top: 20px; display:flex; align-items:center; justify-content:center;
+  width:100%; height:calc(100% - 140px); }
+#board { width:var(--bs); height:var(--bs); display:grid;
+  grid-template-columns:repeat(15,1fr); grid-template-rows:repeat(15,1fr);
+  background: white; border: 6px solid #fff; border-radius: 12px; overflow:hidden;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.1);
+  position:relative; }
+
+.cell { border: 1px solid rgba(0,0,0,0.08); display:flex; align-items:center;
+  justify-content:center; position:relative; background: #fff; }
+  
+/* Ludo King Style Solid Color Zones */
+.cell.red-zone    { background: var(--red); border-color: rgba(0,0,0,0.1); }
+.cell.blue-zone   { background: var(--blue); border-color: rgba(0,0,0,0.1); }
+.cell.green-zone  { background: var(--green); border-color: rgba(0,0,0,0.1); }
+.cell.yellow-zone { background: var(--yellow); border-color: rgba(0,0,0,0.1); }
+
+.cell.path        { background: #ffffff; }
+.cell.safe        { background: #f0f0f0; }
+.cell.safe::after { content:'★'; font-size:clamp(10px, 2vw, 14px); color: #ccc; position:absolute; }
+
+.cell.red-path    { background: #ffe5e5; }
+.cell.blue-path   { background: #e5f2ff; }
+.cell.green-path  { background: #e8f5e9; }
+.cell.yellow-path { background: #fffbe6; }
+
+.cell.center-area { background: #333; } /* Covered by conic-gradient in JS */
+
+/* 3D Pieces (OP Look) */
+.piece { width:78%; height:78%; border-radius:50%; position:absolute; cursor:pointer;
+  transition:transform .15s, box-shadow .15s; z-index:10; display:flex; align-items:center; 
+  justify-content:center; font-size:10px; font-weight:900; color: white;
+  border: 2px solid rgba(255,255,255,0.8);
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.4), inset 0 -4px 4px rgba(0,0,0,0.2), inset 0 4px 4px rgba(255,255,255,0.5); }
+  
+.piece.movable { animation:mBounce .6s infinite alternate; }
+@keyframes mBounce {
+  from{ transform:translate(-50%,-50%) scale(1.05); }
+  to{ transform:translate(-50%,-65%) scale(1.15); box-shadow: 0 8px 12px rgba(0,0,0,0.4), inset 0 -4px 4px rgba(0,0,0,0.2); }
+}
+
+.piece.red-p    { background: radial-gradient(circle at 30% 30%, #ff7675, #d63031); }
+.piece.blue-p   { background: radial-gradient(circle at 30% 30%, #74b9ff, #0984e3); }
+.piece.green-p  { background: radial-gradient(circle at 30% 30%, #55efc4, #00b894); }
+.piece.yellow-p { background: radial-gradient(circle at 30% 30%, #ffeaa7, #fdcb6e); color: #d35400; }
+
+.piece.sm { width:50%; height:50%; font-size:8px; }
+
+/* 3D Dice */
+.dice-bar { position:fixed; bottom:0; left:0; right:0; height:90px;
+  display:flex; align-items:center; justify-content:center; gap:20px;
+  background:rgba(255,255,255,0.9); backdrop-filter:blur(10px);
+  border-top:1px solid rgba(0,0,0,0.05); z-index:60; padding-bottom: 15px; 
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.05); }
+#dice { width:60px; height:60px; background: white; color: #333;
+  border-radius:14px; display:flex; align-items:center; justify-content:center; 
+  font-size:40px; line-height: 1; cursor:pointer; 
+  box-shadow: 0 8px 15px rgba(0,0,0,0.15), inset 0 -4px 0 rgba(0,0,0,0.05);
+  border: 1px solid #eee; transition:all .15s; }
+#dice:active { transform:translateY(4px); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+#dice.rolling { animation:dRoll .4s ease infinite; }
+#dice.disabled { opacity:.6; pointer-events:none; filter: grayscale(1); }
+@keyframes dRoll {
+  0%{transform:rotate(0) scale(1)} 
+  50%{transform:rotate(180deg) scale(1.1)} 
+  100%{transform:rotate(360deg) scale(1)} }
+
+.dice-info { display:flex; flex-direction:column; gap:2px; min-width:120px; }
+.di-turn { font-size:15px; font-weight:800; color: #333; }
+.di-hint { font-size:12px; color: var(--text-muted); font-weight:700; text-transform:uppercase; }
+
+/* Side panels (Player tags) */
+.side-panels { position:fixed; right:10px; top:65px; display:flex;
+  flex-direction:column; gap:8px; z-index:55; }
+.pp { padding:6px 12px; border-radius:20px; background: var(--surface);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 2px solid transparent; min-width:80px; transition:all .2s; }
+.pp.active { border-color: var(--pc); transform: translateX(-5px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+.pp-name { font-size:11px; font-weight: 800; color: var(--text-muted); text-transform:uppercase; margin-bottom:2px; }
+.pp-color { font-size:14px; font-weight:900; display:flex; align-items:center; gap:6px; }
+.pp-dot { width:10px; height:10px; border-radius:50%; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2); }
+
+/* Toast */
+.toast { position:fixed; top:70px; left:50%; transform:translateX(-50%) translateY(-10px);
+  background:rgba(0,0,0,0.8); color: white; padding:10px 24px; border-radius:50px;
+  font-size:14px; font-weight:700; opacity:0; transition:all .3s; z-index:200; pointer-events:none; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* Win Screen */
+#sWin { background:rgba(255,255,255,0.95); z-index:300; backdrop-filter:blur(10px); }
+.win-title { font-size:clamp(40px, 12vw, 80px); font-weight:900; 
+  text-shadow: 0 4px 10px rgba(0,0,0,0.2); animation:winBounce 1s infinite alternate; }
+@keyframes winBounce { from{transform:scale(1)} to{transform:scale(1.1)} }
+
+@media(max-width:400px){
+  :root { --bs: 94vw; }
+  .logo { font-size: 38px; }
+  .board-wrap { margin-top: 10px; }
+  #dice { width: 50px; height: 50px; font-size: 34px; }
+  .dice-bar { height: 80px; padding-bottom: 20px; }
+  .toxic-footer { bottom: 3px; font-size: 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="toxic-footer">Toxic Edition • Developed by Toxic</div>
+
+<div class="screen" id="sLobby">
+  <div class="logo-container">
+    <div class="logo">LUDO</div>
+    <div class="logo-sub">Elite Multiplayer</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+    <div class="section-label">Select Mode</div>
+    <div class="pill-row">
+      <button class="pill active" id="btnCreate" onclick="selectMode('create')">🎮 Create Room</button>
+      <button class="pill" id="btnJoin" onclick="selectMode('join')">🔗 Join Room</button>
+      <button class="pill" id="btnSpectate" onclick="selectMode('spectate')">👁 Spectate</button>
+    </div>
+  </div>
+
+  <div id="createOpts" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+    <div class="section-label">Number of Players</div>
+    <div class="num-row">
+      <div class="nbox" onclick="setPlayers(2)">2</div>
+      <div class="nbox active" onclick="setPlayers(3)">3</div>
+      <div class="nbox" onclick="setPlayers(4)">4</div>
+    </div>
+  </div>
+
+  <div id="joinOpts" style="display:none;flex-direction:column;align-items:center;gap:10px">
+    <div class="section-label">Enter Room Code</div>
+    <input class="join-input" id="joinCode" maxlength="6" placeholder="ABC123" oninput="this.value=this.value.toUpperCase()">
+  </div>
+
+  <button class="big-btn" id="mainBtn" onclick="handleMainBtn()">▶ START</button>
+
+  <div style="font-size:12px; font-weight:700; color:var(--text-muted);" id="connStatus">Connecting...</div>
+</div>
+
+<div class="screen hidden" id="sWait">
+  <div style="text-align:center;display:flex;flex-direction:column;gap:5px">
+    <div style="font-size:24px;font-weight:900;color:#333">WAITING ROOM</div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Share code with friends</div>
+  </div>
+  <div class="room-box">
+    <div class="room-code" id="displayCode">------</div>
+    <div class="room-hint">Tap to copy</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%">
+    <div class="section-label" id="waitLabel">Players (1/3)</div>
+    <div class="waiting-slots" id="waitSlots"></div>
+  </div>
+  <div style="color:var(--text-muted);font-size:14px;font-weight:700" id="waitHint">Waiting for players...</div>
+  <button class="big-btn" id="btnStartGame" style="display:none" onclick="hostStartGame()">▶ START GAME</button>
+</div>
+
+<div class="screen hidden" id="sGame">
+  <div class="topbar">
+    <div class="tb-left">LUDO</div>
+    <div class="tb-mid">
+      <div class="turn-dot" id="turnDot"></div>
+      <span id="turnText">—</span>
+    </div>
+    <div class="tb-right">
+      <div class="badge badge-code" id="tbCode" onclick="copyCode()"></div>
+      <div class="badge badge-you" id="tbYou" style="display:none">YOU</div>
+      <div class="badge" id="tbSpec" style="display:none; background:#e2e3e5; color:#383d41;">SPECTATOR</div>
+    </div>
+  </div>
+  <div class="board-wrap"><div id="board"></div></div>
+  <div class="dice-bar">
+    <div id="dice" onclick="rollDice()">⚀</div>
+    <div class="dice-info">
+      <div class="di-turn" id="diTurn">—</div>
+      <div class="di-hint" id="diHint">Tap to roll</div>
+    </div>
+  </div>
+  <div class="side-panels" id="sidePanels"></div>
+</div>
+
+<div class="screen hidden" id="sWin">
+  <div class="win-title" id="winTitle">🎉 WIN!</div>
+  <button class="big-btn" onclick="location.reload()">Play Again</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════
+const SERVER_URL = 'wss://ludo-2u79.onrender.com';
+
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const COLORS     = ['red','blue','green','yellow'];
+const CNAME      = {red:'Red',blue:'Blue',green:'Green',yellow:'Yellow'};
+const CCSS       = {red:'#FF3B30',blue:'#007AFF',green:'#34C759',yellow:'#FFCC00'};
+const CCLASS     = {red:'red-p',blue:'blue-p',green:'green-p',yellow:'yellow-p'};
+
+const PATH = [
+  [6,1],[6,2],[6,3],[6,4],[6,5],
+  [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],
+  [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],
+  [6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],
+  [8,14],[8,13],[8,12],[8,11],[8,10],[8,9],
+  [9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],
+  [14,6],[13,6],[12,6],[11,6],[10,6],[9,6],
+  [8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0]
+];
+const HOME_STRETCH = {
+  red:   [[6,1],[6,2],[6,3],[6,4],[6,5],[7,6]],
+  blue:  [[1,8],[2,8],[3,8],[4,8],[5,8],[6,7]],
+  green: [[8,13],[8,12],[8,11],[8,10],[8,9],[7,8]],
+  yellow:[[13,6],[12,6],[11,6],[10,6],[9,6],[8,7]],
+};
+const SPAWN = {
+  red:   [[2,2],[2,3],[3,2],[3,3]],
+  blue:  [[2,11],[2,12],[3,11],[3,12]],
+  green: [[11,11],[11,12],[12,11],[12,12]],
+  yellow:[[11,2],[11,3],[12,2],[12,3]],
+};
+const SAFE_IDXS  = new Set([0,8,13,21,26,34,39,47]);
+
+let ws, myId, myColor, myRole='player';
+let roomCode='', numPlayers=3, mode='create';
+let gameState=null; 
+let boardBuilt=false;
+
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.ready(); tg.expand(); tg.setHeaderColor('#F2F2F7'); tg.setBackgroundColor('#F2F2F7'); }
+
+function connectWS(){
+  try {
+    ws = new WebSocket(SERVER_URL);
+    ws.onopen = ()=>{ setConnStatus('● Connected', '#34C759'); };
+    ws.onclose= ()=>{ setConnStatus('○ Disconnected', '#FF3B30'); setTimeout(connectWS,3000); };
+    ws.onerror= ()=>{ setConnStatus('○ Connection error', '#FF3B30'); };
+    ws.onmessage = e => handleMsg(JSON.parse(e.data));
+  } catch(err){ setConnStatus('○ Server unreachable', '#FF3B30'); }
+}
+
+function send(obj){ if(ws && ws.readyState===1) ws.send(JSON.stringify(obj)); }
+
+function handleMsg(msg){
+  switch(msg.type){
+    case 'welcome':      myId=msg.id; break;
+    case 'room_created': onRoomCreated(msg); break;
+    case 'room_joined':  onRoomJoined(msg); break;
+    case 'player_joined':onPlayerJoined(msg); break;
+    case 'game_start':   onGameStart(msg); break;
+    case 'game_state':   onGameState(msg); break;
+    case 'error':        showToast('⚠ '+msg.message); break;
+  }
+}
+
+function setConnStatus(t,c){
+  const el=document.getElementById('connStatus');
+  el.textContent=t; el.style.color=c;
+}
+
+function selectMode(m){
+  mode=m;
+  ['create','join','spectate'].forEach(x=>{
+    document.getElementById('btn'+x.charAt(0).toUpperCase()+x.slice(1))
+      .classList.toggle('active',x===m);
+  });
+  document.getElementById('createOpts').style.display = m==='create'?'flex':'none';
+  document.getElementById('joinOpts').style.display   = m==='join'||m==='spectate'?'flex':'none';
+  document.getElementById('mainBtn').textContent =
+    m==='create'?'▶ CREATE ROOM': m==='join'?'▶ JOIN ROOM':'👁 SPECTATE';
+}
+
+function setPlayers(n){
+  numPlayers=n;
+  document.querySelectorAll('.nbox').forEach((b,i)=>b.classList.toggle('active',i+2===n));
+}
+
+function handleMainBtn(){
+  if(!ws||ws.readyState!==1){ showToast('Not connected to server'); return; }
+  const tgUser = tg?.initDataUnsafe?.user;
+  const userName = tgUser ? (tgUser.first_name||'Player') : 'Player'+Math.floor(Math.random()*1000);
+  if(mode==='create'){
+    send({type:'create_room', players:numPlayers, name:userName});
+  } else if(mode==='join'){
+    const code=document.getElementById('joinCode').value.trim();
+    if(!code){ showToast('Enter room code!'); return; }
+    myRole='player';
+    send({type:'join_room', code, name:userName});
+  } else {
+    const code=document.getElementById('joinCode').value.trim();
+    if(!code){ showToast('Enter room code to spectate!'); return; }
+    myRole='spectate';
+    send({type:'join_room', code, name:userName, spectate:true});
+  }
+}
+
+function onRoomCreated(msg){
+  roomCode=msg.code; myColor=msg.color; myRole='host';
+  document.getElementById('displayCode').textContent=roomCode;
+  document.getElementById('displayCode').onclick=copyCode;
+  showScreen('sWait');
+  renderWaitSlots(msg.players, msg.max);
+}
+
+function onRoomJoined(msg){
+  roomCode=msg.code; myColor=msg.color||null;
+  showScreen('sWait');
+  document.getElementById('displayCode').textContent=roomCode;
+  renderWaitSlots(msg.players, msg.max);
+  if(myRole==='spectate'){
+    document.getElementById('waitHint').textContent='Spectating — waiting for game to start...';
+  }
+}
+
+function onPlayerJoined(msg){
+  renderWaitSlots(msg.players, msg.max);
+  showToast(`${msg.name} joined!`);
+  if(myRole==='host' && msg.players.length >= 2){
+    document.getElementById('btnStartGame').style.display='block';
+    document.getElementById('waitHint').textContent='All set! You can start now.';
+  }
+}
+
+function renderWaitSlots(players, max){
+  const wrap=document.getElementById('waitSlots');
+  wrap.innerHTML='';
+  document.getElementById('waitLabel').textContent=`Players (${players.length}/${max})`;
+  const colorAssign=['red','blue','green','yellow'];
+  for(let i=0;i<max;i++){
+    const p=players[i];
+    const div=document.createElement('div');
+    div.className='slot'+(p?' filled':'');
+    const col=colorAssign[i];
+    const dot=document.createElement('div');
+    dot.className='slot-dot';
+    if(p){ dot.style.background=CCSS[col]; dot.style.color=CCSS[col]; }
+    div.appendChild(dot);
+    div.appendChild(Object.assign(document.createElement('span'),{
+      textContent: p ? p.name+(p.id===myId?' (You)':'') : 'Waiting...',
+      style:`font-weight:700; color:${p?'#333':'#999'}`
+    }));
+    wrap.appendChild(div);
+  }
+}
+
+function hostStartGame(){ send({type:'start_game', code:roomCode}); }
+
+function onGameStart(msg){
+  gameState=msg.state;
+  myColor=msg.colorMap?.[myId]||null;
+  buildBoard();
+  buildSidePanels();
+  showScreen('sGame');
+  document.getElementById('tbCode').textContent=roomCode;
+  if(myRole==='spectate'){
+    document.getElementById('tbSpec').style.display='flex';
+    document.getElementById('dice').classList.add('disabled');
+  } else if(myColor){
+    document.getElementById('tbYou').style.display='flex';
+  }
+  renderGameState();
+}
+
+function onGameState(msg){
+  gameState=msg.state;
+  renderGameState();
+}
+
+function buildBoard(){
+  if(boardBuilt)return; boardBuilt=true;
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  const cells=[];
+  for(let r=0;r<15;r++){
+    cells[r]=[];
+    for(let c=0;c<15;c++){
+      const el=document.createElement('div');
+      el.className='cell';
+      el.id=`c${r}_${c}`;
+      cells[r][c]=el;
+      board.appendChild(el);
+    }
+  }
+  
+  // Zones - Solid colored blocks
+  for(let r=0;r<6;r++) for(let c=0;c<6;c++)   cells[r][c].className='cell red-zone';
+  for(let r=0;r<6;r++) for(let c=9;c<15;c++)  cells[r][c].className='cell blue-zone';
+  for(let r=9;r<15;r++) for(let c=9;c<15;c++) cells[r][c].className='cell green-zone';
+  for(let r=9;r<15;r++) for(let c=0;c<6;c++)  cells[r][c].className='cell yellow-zone';
+  for(let r=6;r<9;r++) for(let c=6;c<9;c++)   cells[r][c].className='cell center-area';
+
+  // Make inner spawn boxes white to look like classic Ludo
+  const spawnBoxes = {
+    red: [[1,1,4,4]], blue: [[1,10,4,13]], green: [[10,10,13,13]], yellow: [[10,1,13,4]]
+  };
+  Object.values(spawnBoxes).forEach(bounds => {
+    bounds.forEach(([r1,c1,r2,c2]) => {
+      for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++) {
+        cells[r][c].style.background = 'white';
+        cells[r][c].style.borderRadius = '4px';
+      }
+    });
+  });
+
+  // Gray inactive players
+  COLORS.forEach(col=>{
+    if(!gameState.activePlayers.includes(col)){
+      const map={red:[[0,0,6,6]],blue:[[0,9,6,15]],green:[[9,9,15,15]],yellow:[[9,0,15,6]]};
+      map[col].forEach(([r1,c1,r2,c2])=>{
+        for(let r=r1;r<r2;r++) for(let c=c1;c<c2;c++){
+          cells[r][c].style.filter='grayscale(1)';
+          cells[r][c].style.opacity='0.4';
+        }
+      });
+    }
+  });
+
+  PATH.forEach((p,i)=>{
+    const cl=cells[p[0]][p[1]];
+    cl.className='cell path';
+    if(SAFE_IDXS.has(i)) cl.classList.add('safe');
+  });
+  
+  const hsColors={red:'red-path',blue:'blue-path',green:'green-path',yellow:'yellow-path'};
+  Object.entries(HOME_STRETCH).forEach(([col,pts])=>{
+    pts.slice(0,-1).forEach(([r,c])=>{ cells[r][c].className=`cell ${hsColors[col]}`; });
+  });
+
+  const cc=cells[7][7];
+  cc.style.background='conic-gradient(from 45deg, #FF3B30 0 90deg, #007AFF 90deg 180deg, #34C759 180deg 270deg, #FFCC00 270deg 360deg)';
+  cc.innerHTML='<span style="font-size:calc(var(--bs)*.06);color:white;text-shadow:0 2px 4px rgba(0,0,0,0.5);z-index:5;">★</span>';
+}
+
+function buildSidePanels(){
+  const wrap=document.getElementById('sidePanels');
+  wrap.innerHTML='';
+  gameState.activePlayers.forEach((col,i)=>{
+    const div=document.createElement('div');
+    div.className='pp'; div.id='pp_'+col;
+    div.style.setProperty('--pc',CCSS[col]);
+    const isYou=col===myColor;
+    div.innerHTML=`
+      <div class="pp-name">P${i+1}${isYou?' <span style="color:#34C759">(YOU)</span>':''}</div>
+      <div class="pp-color">
+        <div class="pp-dot" style="background:${CCSS[col]}"></div>
+        <span style="color:${CCSS[col]}">${CNAME[col]}</span>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+function renderGameState(){
+  if(!gameState)return;
+  const gs=gameState;
+  const curColor=gs.activePlayers[gs.currentTurn];
+
+  document.getElementById('turnDot').style.background=CCSS[curColor];
+  document.getElementById('turnText').textContent=
+    `${CNAME[curColor]}'s Turn${curColor===myColor?' (You)':''}`;
+  document.getElementById('diTurn').textContent=
+    curColor===myColor?`Your Turn (${CNAME[curColor]})`:`${CNAME[curColor]} Playing`;
+
+  const diceEl=document.getElementById('dice');
+  if(gs.diceValue>0) diceEl.textContent=DICE_FACES[gs.diceValue-1];
+  const isMyTurn=curColor===myColor && myRole!=='spectate';
+  const canRoll=isMyTurn && !gs.diceRolled;
+  diceEl.classList.toggle('disabled',!canRoll);
+  document.getElementById('diHint').textContent=
+    canRoll?'Tap to roll': gs.diceRolled&&isMyTurn?'Choose a piece':'Waiting...';
+
+  document.querySelectorAll('.pp').forEach(p=>p.classList.remove('active'));
+  const ap=document.getElementById('pp_'+curColor);
+  if(ap) ap.classList.add('active');
+
+  document.querySelectorAll('.piece').forEach(p=>p.remove());
+  gs.activePlayers.forEach(col=>{
+    gs.pieces[col].forEach(piece=>{
+      if(piece.finished)return;
+      const [row,col2]=getPiecePos(piece,col);
+      const cell=document.getElementById(`c${row}_${col2}`);
+      if(!cell)return;
+      const existing=cell.querySelectorAll('.piece');
+      const el=document.createElement('div');
+      el.className=`piece ${CCLASS[col]}`;
+      el.id=`piece_${col}_${piece.id}`;
+      if(existing.length>0){
+        el.classList.add('sm');
+        const offs=[{top:'10%',left:'10%'},{top:'10%',right:'10%'},{bottom:'10%',left:'10%'},{bottom:'10%',right:'10%'}];
+        const o=offs[existing.length]||offs[0];
+        el.style.top=''; el.style.left=''; el.style.transform='';
+        Object.assign(el.style,o);
+      }
+      const movable=gs.diceRolled && curColor===col && isMyTurn && canMovePiece(piece,col,gs.diceValue);
+      if(movable){
+        el.classList.add('movable');
+        el.onclick=()=>sendMove(col,piece.id);
+      }
+      cell.appendChild(el);
+    });
+  });
+
+  gs.activePlayers.forEach(col=>{
+    if(gs.pieces[col]?.every(p=>p.finished)) triggerWin(col);
+  });
+}
+
+function canMovePiece(piece,col,dv){
+  if(piece.finished)return false;
+  if(piece.inBase) return dv===6;
+  if(piece.homeStretch>=0) return piece.homeStretch+dv<=5;
+  return true;
+}
+
+function getPiecePos(piece,col){
+  if(piece.inBase) return SPAWN[col][piece.id];
+  if(piece.homeStretch>=0){
+    const hs=HOME_STRETCH[col];
+    if(piece.homeStretch>=hs.length) return [7,7];
+    return hs[piece.homeStretch];
+  }
+  return PATH[piece.pathIdx];
+}
+
+function rollDice(){
+  const gs=gameState;
+  if(!gs||gs.diceRolled)return;
+  const curColor=gs.activePlayers[gs.currentTurn];
+  if(curColor!==myColor||myRole==='spectate')return;
+  
+  const diceEl=document.getElementById('dice');
+  diceEl.classList.add('rolling');
+  let n=0;
+  const iv=setInterval(()=>{
+    diceEl.textContent=DICE_FACES[Math.floor(Math.random()*6)];
+    if(++n>=8){ clearInterval(iv); diceEl.classList.remove('rolling'); }
+  },50);
+  send({type:'roll_dice',code:roomCode});
+}
+
+function sendMove(col,pieceId){ send({type:'move_piece',code:roomCode,color:col,pieceId}); }
+
+function copyCode(){
+  navigator.clipboard?.writeText(roomCode).then(()=>showToast('Code copied!'))
+    .catch(()=>showToast('Code: '+roomCode));
+}
+
+function triggerWin(col){
+  const ws2=document.getElementById('sWin');
+  if(ws2.classList.contains('hidden')){
+    ws2.classList.remove('hidden');
+    document.getElementById('winTitle').textContent=`🎉 ${CNAME[col].toUpperCase()} WINS!`;
+    document.getElementById('winTitle').style.color=CCSS[col];
+  }
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._tt);
+  window._tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+selectMode('create'); setPlayers(3); connectWS();
+(function raf(){ requestAnimationFrame(raf); })();
+</script>
+</body>
+</html>
